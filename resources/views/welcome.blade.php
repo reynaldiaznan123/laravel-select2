@@ -12,6 +12,7 @@
         <link href="https://fonts.googleapis.com/css?family=Nunito:200,600" rel="stylesheet">
 
         <!-- Other -->
+        <link href="{{ asset('css/app.css') }}" rel="stylesheet">
         <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.7/css/select2.min.css" rel="stylesheet" />
 
         <!-- Styles -->
@@ -99,10 +100,31 @@
                     <a href="https://github.com/laravel/laravel">GitHub</a>
                 </div>
 
-                <div>
-                    <select id="select2">
-                        <option value=""></option>
-                    </select>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+                    Launch demo modal
+                </button>
+
+                <!-- Modal -->
+                <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <form class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <select id="select2" placeholder="Plih mahasiswa" multiple>
+                                    <!-- <option></option> -->
+                                </select>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary">Save changes</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -111,52 +133,109 @@
     <script src="{{ asset('js/app.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.7/js/select2.min.js"></script>
     <script>
+        function ResultTemplater(item) {
+            return item.nama || item.text;
+        }
+
+        function SelectionTemplater(item) {
+            if (typeof item.nama !== 'undefined') {
+                return ResultTemplater(item);
+            }
+
+            return item.nama || item.text
+        }
+
         $(function() {
-            const id = 3;
-            const text = 'Soft';
-
-            const el = $('#select2');
-            const select2 = el.select2({
-                width: '100%',
-                placeholder: 'Pilih perizinan',
-                ajax: {
-                    url: function (params) {
-                        return '{{ url('api/mahasiswa') }}';
-                    },
+            $('#exampleModal').on('show.bs.modal', function(e) {
+                $.ajax({
+                    type: 'get',
+                    url: '{{ url('get/data') }}',
+                    data: {},
+                    async: false,
                     dataType: 'json',
-                    delay: 250,
-                    data: function(params) {
-                        return {
-                            q: params.term, // search term
-                            page: params.page,
-                            limit: 10
-                        };
+                    success: function(data) {
+                        initSelect2(data);
                     },
-                    processResults: (data, params) => {
-                    params.page = params.page || 1
-                        return {
-                            results: data.items,
-                            pagination: {
-                                more: params.page * data.limit < data.total_count
-                            }
-                        };
-                    },
-                    transport: function (params, success, failure) {
-                        const $request = $.ajax(params);
-
-                        $request.then(success);
-                        $request.fail(failure);
-
-                        return $request;
-                    },
-                    cache: true
-                }
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        alert(textStatus);
+                    }
+                });
             });
+
+            $('#exampleModal').on('hide.bs.modal', function() {
+                initSelect2([])
+                    .val(null)
+                    .trigger('change');
+            });
+
+            function initSelect2(data) {
+                const el = $('#select2');
+
+                if (el.data('select2')) el.select2('destroy');
+                const select2 = el.select2({
+                    width: '100%',
+                    placeholder: el.attr('placeholder'),
+                    multiple: true,
+                    ajax: {
+                        // url: function (params) {
+                        //     return '{{ url('api/mahasiswa') }}';
+                        // },
+                        url: '{{ url('api/mahasiswa') }}',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                q: params.term, // search term
+                                page: params.page,
+                                limit: 10
+                            };
+                        },
+                        processResults: (data, params) => {
+                        params.page = params.page || 1
+                            return {
+                                results: data.items,
+                                pagination: {
+                                    more: params.page * data.limit < data.total_count
+                                }
+                            };
+                        },
+                        transport: function (params, success, failure) {
+                            const $request = $.ajax(params);
+
+                            $request.then(success);
+                            $request.fail(failure);
+
+                            return $request;
+                        },
+                        cache: true
+                    },
+                    minimumInputLength: 1,
+                    templateResult: ResultTemplater,
+                    templateSelection: SelectionTemplater
+                });
+
+                if (data !== undefined && data.length > 0) {
+                    data.forEach(function(v) {
+                        var opt = new Option(v.nama, v.id, true, true);
+                        el.append(opt);
+                    });
+                    el.trigger('change');
+
+                    el.trigger({
+                        type: 'select2:select',
+                        params: {
+                            data: data
+                        }
+                    })
+                }
+
+                return el
+            }
 
             // parameters class option
             // view text, view id, enable view id, enable, view text
-            const opt = new Option(text, id, true, true);
-            el.append(opt).trigger('change');
+            // const opt = new Option(text, id, true, true);
+            // el.append(opt).trigger('change');
         });
         </script>
-</html>
+</html>1

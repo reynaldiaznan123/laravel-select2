@@ -14,3 +14,8 @@
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('get/data', function() {
+    $data = Model\Mahasiswa::where('id', 1)->orWhere('id', 5)->get();
+    return $data;
+});
